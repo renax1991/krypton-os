@@ -8,6 +8,7 @@
 
 #include "common.h"
 #include "idt.h"
+#include "pmm.h"
 
 // Lets us access our ASM functions from our C code.
 extern void idt_flush(uint32_t);
@@ -106,6 +107,7 @@ void init_idt ()
 
   // Tell the CPU about our new IDT.
   idt_flush ((uint32_t)&idt_ptr);
+  register_interrupt_handler (14, &page_fault);
 }
 
 static void idt_set_gate (uint8_t num, uint32_t base, uint16_t sel, uint8_t flags)
@@ -152,4 +154,3 @@ void irq_handler(registers_t *regs)
     if (interrupt_handlers[regs->int_no] != 0)
       interrupt_handlers[regs->int_no] (regs);
 }
-

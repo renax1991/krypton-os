@@ -22,6 +22,14 @@ struct idt_ptr iptr;
 extern void gdt_flush();
 extern void idt_load();
 
+void enable(){
+    asm volatile ("sti");
+}
+
+void disable(){
+    asm volatile ("cli");
+}
+
 // Very simple: fills a GDT entry using the parameters
 static void gdt_set_gate(int num, unsigned long base, unsigned long limit,
         unsigned char access, unsigned char gran)

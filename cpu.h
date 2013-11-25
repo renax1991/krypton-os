@@ -53,3 +53,10 @@ void init_paging();
  Sets our 3 gates and installs the real GDT through the assembler function
  *******************************************************************/
 void gdt_install();
+
+/*******************************************************************
+ enable(), disable()
+ Primitives used to enable/disable interrupts
+ *******************************************************************/
+void enable();
+void disable();
