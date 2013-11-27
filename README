@@ -1,1 +1,11 @@
-Hello World!
+Hello! Welcome to the Krypton OS main source tree.
+
+This is the x86 implementation of the Krypton uKernel concept,
+integrated into the vfsDOS project, one of the many projects ran by our
+team, widely based on the inner workings of the AmigaOS Exec kernel, but
+with, or so we hope, much more modern features such as memory protection,
+shared-memory-based message passing, Unix-like multiuser capabilities,
+and many more stuff, highly tailored to multimedia applications!
+
+Best regards,
+The ERA team!
