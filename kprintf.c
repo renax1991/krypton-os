@@ -15,7 +15,8 @@ void kprintf (const char *fmt, ...)
  	va_end(args);
 
  	buf[i] = '\0';
-
+        forbid();
  	monitor_write (buf);
+        permit();
 }
 

@@ -45,6 +45,7 @@ volatile void kfree (void *p);
 
 inline volatile void page_fault (registers_t *regs);
 
+inline void switch_page_directory(void *pagetabledir_ptr);
 
 #endif	/* _PMM_H */
 

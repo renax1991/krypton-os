@@ -3,6 +3,8 @@
 ;          Based on code from Bran's kernel development tutorials.
 ;          Rewritten for JamesM's kernel development tutorials.
 
+[extern sys_base]
+
 global idt_flush:function idt_flush.end-idt_flush ; Allows the C code to call idt_flush().
 idt_flush:
     mov eax, [esp+4]  ; Get the pointer to the IDT, passed as a parameter. 
@@ -15,7 +17,6 @@ idt_flush:
 %macro ISR_NOERRCODE 1
   global isr%1
   isr%1:
-    cli                         ; Disable interrupts firstly.
     push 0                      ; Push a dummy error code.
     push %1                     ; Push the interrupt number.
     jmp isr_common_stub         ; Go to our common handler code.
@@ -26,7 +27,6 @@ idt_flush:
 %macro ISR_ERRCODE 1
   global isr%1
   isr%1:
-    cli                         ; Disable interrupts.
     push %1                     ; Push the interrupt number
     jmp isr_common_stub
 %endmacro
@@ -108,7 +108,6 @@ isr_common_stub:
 %macro IRQ 2
   global irq%1
   irq%1:
-    cli
     push byte 0
     push byte %2
     jmp irq_common_stub
@@ -133,8 +132,9 @@ IRQ  15,    47
         
 ; C function in idt.c
 extern irq_handler
+extern switch_threads
 
-global irq_common_stub:function irq_common_stub.end-irq_common_stub
+global irq_common_stub;:function irq_common_stub.end-irq_common_stub
 
 ; This is our common IRQ stub. It saves the processor state, sets
 ; up for kernel mode segments, calls the C-level fault handler,
@@ -152,10 +152,30 @@ irq_common_stub:
     mov gs, ax
     mov ss, ax
 
-    push esp    	     ; Push a pointer to the current top of stack - this becomes the registers_t* parameter.
+    push esp    	     ; Push a pointer to the current top of stack
+                             ; this becomes the registers_t* parameter.
     call irq_handler         ; Call into our C code.
     add esp, 4		     ; Remove the registers_t* parameter.
 
+    mov ebp, [sys_base]      ; Get sys_base address
+    mov eax, [ebp+0]         ; then read sys_flags to eax
+    test eax, 4              ; Test if NEED_TASK_SWITCH is set
+    jz no_switch             ; Don't switch if not set
+    mov ebx, [ebp+4]         ; Get running_thread address to ebx
+    mov [ebx+20], esp        ; Save task stack pointer
+    push ebp
+    push ebx
+    call switch_threads      ; Call our C function to fetch the new thread
+    pop ebx
+    pop ebp
+    mov esp, [ebx+20]        ; Restore new stack pointer
+    mov eax, [ebx+24]        ; Retrieve the new thread's page directory
+    mov cr3, eax             ; and load it into CR3
+    mov eax, [ebp+0]         ; Read again sys_flags
+    or eax, 0xFFFFFFFB       ; Unset the NEED_TASK_SWITCH flag
+    mov [ebp+0], eax         ; And store the flags - we've switched contexts!
+
+no_switch:
     pop ebx                  ; Reload the original data segment descriptor
     mov ds, bx
     mov es, bx

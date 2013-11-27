@@ -9,6 +9,8 @@
 #endif
 #include <stddef.h>
 
+
+extern struct sys_base_t * sys_base;
 #define FRAMEBUFFER_VIRTUAL 0xA0000000
 
 /* Amiga-style node definitions for the doubly linked lists*/
@@ -36,7 +38,7 @@ struct list_node_s {
 	struct list_node_s  *next;
 	struct list_node_s  *prev;
 	uint32_t            type;
-	uint32_t            pri;
+	int32_t             pri;
 	char *              name;
 } __attribute__((packed));
 

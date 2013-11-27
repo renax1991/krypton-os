@@ -141,7 +141,7 @@ void enqueue(list_head_t *list, list_node_t * node){
 	    next->prev	   = node;
 
 	    /*
-		Done. We cannot simply break the loop because of the addTail()
+		Done. We cannot simply break the loop because of the add_tail()
 		below.
             */
 	    return;

@@ -12,8 +12,10 @@
 #include "kprintf.h"
 #include "multiboot.h"
 
-#define PM_STACK_ADDR   (unsigned long *) 0xFF000000
-#define SH_HEAP_START   (unsigned long) 0x80000000
+#define SH_HEAP_START       (unsigned long)     0x80000000
+#define PM_DIR_CLONE_ADDR   (unsigned long *)   0xFE000000
+#define PM_PAGE_CLONE_ADDR  (unsigned long *)   0xFE800000
+#define PM_STACK_ADDR       (unsigned long *)   0xFF000000
 
 static inline void split_chunk(heap_header_t *chunk, uint32_t len);
 
@@ -75,6 +77,11 @@ void init_paging() {
             "mov %%cr0, %%eax\n"
             "orl $0x80000000, %%eax\n"
             "mov %%eax, %%cr0\n" ::"m" (kernelpagedirPtr));
+}
+
+inline void switch_page_directory(void *pagetabledir_ptr) {
+    asm volatile ( "mov %0, %%eax\n"
+            "mov %%eax, %%cr3\n" ::"m" (pagetabledir_ptr));
 }
 
 /* mm_init() - memory manager initialization function
@@ -373,4 +380,33 @@ inline volatile void page_fault(registers_t *regs) {
     kprintf("Error code: %x\n", regs->err_code);
     panic("");
     for (;;);
+}
+
+// Clones the current page directory
+// Returns the physycal address of the new directory
+pagedir_t * clone_actual_directory(){
+    unsigned long * source_pd = (unsigned long *) 0xFFFFF000;
+    unsigned long * dest_pd;
+    pagedir_t * dest_pd_physical = pm_alloc();
+    pagetable_t * dest_pt_physical;
+    unsigned long * pt;
+    int i;
+    // Copy first the page directory
+    dest_pd = mm_map(dest_pd_physical, PM_DIR_CLONE_ADDR, PAGE_WRITE);
+    memcpy(PM_DIR_CLONE_ADDR, source_pd, 4096);
+    // Now iterate over each one of the page tables
+    // and copy those who exist
+    for(i = 0; i < 1024; i++){
+        pt = ((unsigned long *) 0xFFC00000) + (0x400 * i);
+        if (pt != 0){
+            dest_pt_physical = pm_alloc();
+            mm_map(dest_pt_physical, PM_DIR_CLONE_ADDR, PAGE_WRITE);
+            memcpy(PM_DIR_CLONE_ADDR, ((unsigned long)pt & PAGE_MASK), 4096);
+            // Point the directory entry to the new page 
+            // with the same permitions
+            dest_pd[i] = ((unsigned long)pt & 0x7) |
+                    (unsigned long)dest_pt_physical;
+        }
+    }
+    return dest_pd_physical;
 }
