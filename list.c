@@ -71,6 +71,11 @@ list_node_t * remove_tail(list_head_t * list)
     return node;
 }
 
+void remove(list_node_t * node) {
+	node->prev->next = node->next;
+	node->next->prev = node->prev;
+}
+
 void new_list(list_head_t * list){
 	list->head = (list_node_t *) &list->tail;
 	list->tail = NULL;
@@ -133,7 +138,7 @@ void enqueue(list_head_t *list, list_node_t * node){
 	*/
 	if (node->pri >= next->pri)
 	{
-            /* Same as insert but insert before instead of insert behind */
+        /* Same as insert but insert before instead of insert behind */
 	    node->next = next;
 	    node->prev = next->prev;
 

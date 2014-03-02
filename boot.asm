@@ -2,15 +2,13 @@
 MBALIGN     equ  1<<0                   ; align loaded modules on page boundaries
 MEMINFO     equ  1<<1                   ; provide memory map
 VIDEOMODE   equ  1<<2                   ; use GRUB 2 to initialize video card
-FLAGS       equ  MBALIGN | MEMINFO | VIDEOMODE  ; this is the Multiboot 'flag' field
+FLAGS       equ  MBALIGN | MEMINFO      ; this is the Multiboot 'flag' field
 MAGIC       equ  0x1BADB002             ; 'magic number' lets bootloader find the header
 CHECKSUM    equ -(MAGIC + FLAGS)        ; checksum of above, to prove we are multiboot
 
 
 global mboot                    ; Make 'mboot' accessible from C.
-extern code
-extern bss
-extern end
+
 ; Declare a header as in the Multiboot Standard. We put this into a special
 ; section so we can force the header to be in the start of the final program.
 ; You don't need to understand all these details as it is just magic values that
@@ -22,19 +20,7 @@ align 4
 	dd MAGIC
 	dd FLAGS
 	dd CHECKSUM
-	dd mboot
-	dd code
-	dd bss
-	dd end
-	dd _start
-	dd 0
-	
-; VESA Screen mode setting
-	dd 640
-	dd 480
-	dd 24
- 
- 
+
 ; The linker script specifies _start as the entry point to the kernel and the
 ; bootloader will jump to this position once the kernel has been loaded. It
 ; doesn't make sense to return from this function as the bootloader is gone.
@@ -49,16 +35,6 @@ _start:
 	; Here's the trick: we load a GDT with a base address
 	; of 0x40000000 for the code (0x08) and data (0x10) segments
 	
-	cli ; Disable all interrupts, just to be sure
-	
-	cmp	eax, 0x2BADB002		; See if we're loaded by GRUB
-	jz	fake_gdt
-not_grub:
-	jmp	not_grub			; Halt immediately if not!
-	
-	; GRUB provides us a flat GDT based at 0x0, so we need to load ours
-	; accordingly because our kernel is linked to run at 0xC0000000
-fake_gdt:
 	lgdt [trickgdt]			; Load the fake GDT and
 	mov ax, 0x10			; load all data segment registers
 	mov ds, ax
@@ -75,31 +51,9 @@ higherhalf:
 	; our stack (as it grows downwards).
 	mov esp, stack_top
 	
-	; See if we need to put up a panic alert at startup
-	
-	; Whenever we throw a panic, if for some reason the system wasn't able to show
-	; the panic message using Infinity (i.e. the video driver crashed), the kernel 
-	; writes "HELP" at physical location 0x400 followed by the panic info structure, and reboots
-	
-	mov ebp, 0x800          ; Load panic structure location
-        add ebp, 0xC0000000     ; Displace to physical location
-	mov eax, 0x504C4548     ; Little endian representation for "HELP"
-	cmp eax, dword [ebp]    ; Test if "HELP" exists
-	jne no_panic
-	mov dword [ebp], 0      ; Clear "HELP" string
-	push ebp                ; Push panic info structure onto stack
-	jmp call_init
-no_panic:                       ; We come here if there was no panic (i.e. normal boot)
-	push 0                  ; Push NULL to tell kernel_init to boot normally
-call_init:
-	add ebx, 0xC0000000	; Displace Multiboot register relative to our GDT
-	mov eax, [ebx+76]	; Push VBE mode info structure address
-	push eax		; for the kernel to clear the framebuffer
-	mov eax, [ebx+72]	; Push VBE controller info structure address
-	push eax		; for the kernel to initialize the graphics driver
-        sub ebx, 0xC0000000     ; Undisplace Multiboot pointer
+
 	push ebx		; Push GRUB2 multiboot structure pointer
-        mov ebp, 0              ; Zero ebp to initialize the stack unwinder
+    mov ebp, 0      ; Zero ebp to initialize the stack unwinder
 	
 	; We are now ready to actually execute C code. We cannot embed that in an
 	; assembly file, so we'll create a init.c file in a moment. In that file,
@@ -155,9 +109,9 @@ gdt_end:
 	; Currently the stack pointer register (esp) points at anything and using it may
 	; cause massive harm. Instead, we'll provide our own stack. We will allocate
 	; room for a small temporary stack by creating a symbol at the bottom of it,
-	; then allocating 16 kbytes for it, and finally creating a symbol at the top.
+	; then allocating 4 kbytes for it, and finally creating a symbol at the top.
 section .bss
 align 4
 stack_bottom:
-resb 0x4000
+resb 0x1000
 stack_top:

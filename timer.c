@@ -14,12 +14,14 @@ uint32_t system_tick = 0;
 static void timer_callback (registers_t *regs)
 {
     system_tick++;
+    if(sys_base->ts_curr_count < -1)
+      return;
+
+    sys_base->ts_curr_count--;
+
     if(sys_base->ts_curr_count < 0){
         sys_base->sys_flags |= TIME_SLICE_EXPIRED;
         sys_base->sys_flags |= NEED_SCHEDULE;
-    }
-    else{
-        sys_base->ts_curr_count--;
     }
 }
 

@@ -2,6 +2,7 @@
 #include "kprintf.h"
 #include "vsprintf.h"
 #include <stdarg.h>
+#include "thread.h"
 
 void kprintf (const char *fmt, ...)
 {
@@ -15,8 +16,8 @@ void kprintf (const char *fmt, ...)
  	va_end(args);
 
  	buf[i] = '\0';
-        forbid();
+ 	forbid();
  	monitor_write (buf);
-        permit();
+ 	permit();
 }
 

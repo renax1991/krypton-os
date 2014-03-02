@@ -9,6 +9,8 @@
 #define IDT_H
 
 #include "common.h"
+#include "thread.h"
+
 
 // A few defines to make life a little easier
 #define IRQ0 32
@@ -27,9 +29,6 @@
 #define IRQ13 45
 #define IRQ14 46
 #define IRQ15 47
-
-// IDT initialisation function.
-void init_idt ();
 
 // This structure describes one interrupt gate.
 typedef struct
@@ -57,12 +56,21 @@ typedef struct
   uint32_t eip, cs, eflags, useresp, ss; // Pushed by the processor automatically.
 } registers_t;
 
+typedef struct
+{
+  list_node_t node;
+  thread_t * thread_ptr;
+} except_t;
+
 // An interrupt handler. It is a pointer to a function which takes a pointer 
 // to a structure containing register values.
 typedef void (*interrupt_handler_t)(registers_t *);
 
 // Allows us to register an interrupt handler.
 void register_interrupt_handler (uint8_t n, interrupt_handler_t h);
+
+// IDT initialisation function.
+void init_idt ();
 
 // These extern directives let us access the addresses of our ASM ISR handlers.
 extern void isr0 ();
@@ -114,5 +122,6 @@ extern void irq12();
 extern void irq13();
 extern void irq14();
 extern void irq15();
+
 #endif
 

@@ -4,9 +4,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#if !defined(__cplusplus)
 #include <stdbool.h> /* C doesn't have booleans by default. */
-#endif
 #include <stddef.h>
 
 
@@ -60,11 +58,10 @@ typedef struct list_head_s  list_head_t;
 void add_head(list_head_t *, list_node_t *);
 void add_tail(list_head_t *, list_node_t *);
 void enqueue(list_head_t *, list_node_t *);
-
+void remove(list_node_t * node);
 list_node_t *   remove_head(list_head_t *);
 list_node_t *   remove_tail(list_head_t *);
 void            new_list(list_head_t *);
-
 list_node_t *   get_next(list_node_t *);
 list_node_t *   get_head(list_head_t *);
 list_node_t *   get_tail(list_head_t *);

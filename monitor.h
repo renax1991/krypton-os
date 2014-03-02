@@ -48,6 +48,7 @@ void monitor_clear();
 
 // Output a null-terminated ASCII string to the monitor.
 void monitor_write(char *c);
+void _monitor_write(char *c);
 
 // Output a hex value to the monitor.
 void monitor_write_hex(uint32_t n);
@@ -55,6 +56,6 @@ void monitor_write_hex(uint32_t n);
 // Output a decimal value to the monitor.
 void monitor_write_dec(uint32_t n);
 
-void video_init(struct vbe_mode_info_t * vmode_info);
+void monitor_init();
 
 #endif // MONITOR_H

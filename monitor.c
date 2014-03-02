@@ -3,126 +3,28 @@
 //              but rewritten for JamesM's kernel tutorials.
 
 #include "monitor.h"
-#include "font.h"
 #include "pmm.h"
 #include "common.h"
 
 uint16_t *video_memory = (uint16_t*) 0xB8000;
-uint16_t video_pitch;
+
 // Stores the cursor position.
 uint32_t cursor_x = 0;
 uint32_t cursor_y = 0;
 
-extern const struct bitmap_font font;
+ /* void update_cursor(int row, int col)
+  * by Dark Fiber
+  */
+void update_cursor(int row, int col)
+{
+   unsigned short position=(row*80) + col;
 
-uint32_t font_data_lookup_table[16] = {
-    0x00000000,
-    0x000000FF,
-    0x0000FF00,
-    0x0000FFFF,
-    0x00FF0000,
-    0x00FF00FF,
-    0x00FFFF00,
-    0x00FFFFFF,
-    0xFF000000,
-    0xFF0000FF,
-    0xFF00FF00,
-    0xFF00FFFF,
-    0xFFFF0000,
-    0xFFFF00FF,
-    0xFFFFFF00,
-    0xFFFFFFFF
-};
-
-void video_init(struct vbe_mode_info_t * vmode_info) {
-    uint8_t * framebuffer_phys = (uint8_t *) vmode_info->physbase;
-    uint8_t * framebuffer_virtual = (uint8_t *) FRAMEBUFFER_VIRTUAL;
-    int xmax = vmode_info->Xres, ymax = vmode_info->Yres;
-    uint8_t * pixel = framebuffer_virtual;
-
-    uint32_t i, j, fb_pages = (ymax * vmode_info->pitch + 1) / 4096;
-
-    for (i = 0; i <= fb_pages; i++) {
-        mm_map((void*) ((unsigned long) framebuffer_phys + i * 4096),
-                (void*) ((unsigned long) FRAMEBUFFER_VIRTUAL + i * 4096),
-                PAGE_USER | PAGE_WRITE);
-    }
-
-    for (i = 0; i < ymax; i++) {
-        for (j = 0; j < xmax; j++) {
-            pixel[j * 3] = 0x40;
-            pixel[j * 3 + 1] = 0x40;
-            pixel[j * 3 + 2] = 0x40;
-        }
-        pixel += vmode_info->pitch;
-    }
-
-    video_pitch = vmode_info->pitch;
-}
-
-static void draw_char(uint8_t *where, uint32_t character, uint8_t foreground, uint8_t background) {
-    int row, pixel;
-    uint8_t row_data, mask;
-    uint32_t mask1, mask2;
-    uint8_t *font_data_for_char = &font.Bitmap[(character - 31) * 16];
-
-    for (row = 0; row < 16; row++) {
-        row_data = font_data_for_char[row];
-        mask = 0x80;
-        /*mask1 = font_data_lookup_table[row_data >> 16];
-        mask2 = font_data_lookup_table[row_data & 0x0F];
-         *(uint32_t *)where = (packed_foreground & mask1) | (packed_background & ~mask1);
-         *(uint32_t *)(&where[4]) = (packed_foreground & mask2) | (packed_background & ~mask2); */
-        for (pixel = 0; pixel < 8; pixel++) {
-            if ((row_data & mask) != 0) {
-                where[pixel * 3] = foreground;
-                where[pixel * 3 + 1] = foreground;
-                where[pixel * 3 + 2] = foreground;
-            } else {
-                where[pixel * 3] = background;
-                where[pixel * 3 + 1] = background;
-                where[pixel * 3 + 2] = background;
-            }
-            mask = mask >> 1;
-        }
-        where += video_pitch;
-    }
-}
-
-static void draw_char_mask(uint8_t *where, uint32_t character, uint8_t foreground) {
-    int row, pixel;
-    uint8_t row_data, mask;
-    uint32_t mask1, mask2;
-    uint8_t *font_data_for_char = &font.Bitmap[(character - 31) * 16];
-
-    for (row = 0; row < 16; row++) {
-        row_data = font_data_for_char[row];
-        mask = 0x80;
-        /*mask1 = font_data_lookup_table[row_data >> 16];
-        mask2 = font_data_lookup_table[row_data & 0x0F];
-         *(uint32_t *)where = (packed_foreground & mask1) | (packed_background & ~mask1);
-         *(uint32_t *)(&where[4]) = (packed_foreground & mask2) | (packed_background & ~mask2); */
-        for (pixel = 0; pixel < 8; pixel++) {
-            if ((row_data & mask) != 0) {
-                where[pixel * 3] = foreground;
-                where[pixel * 3 + 1] = foreground;
-                where[pixel * 3 + 2] = foreground;
-            }
-            mask = mask >> 1;
-        }
-        where += video_pitch;
-    }
-}
-
-// Updates the hardware cursor.
-
-static void move_cursor() {
-    // The screen is 80 characters wide...
-    uint16_t cursorLocation = cursor_y * 80 + cursor_x;
-    outb(0x3D4, 14); // Tell the VGA board we are setting the high cursor byte.
-    outb(0x3D5, cursorLocation >> 8); // Send the high cursor byte.
-    outb(0x3D4, 15); // Tell the VGA board we are setting the low cursor byte.
-    outb(0x3D5, cursorLocation); // Send the low cursor byte.
+   // cursor LOW port to vga INDEX register
+   outb(0x3D4, 0x0F);
+   outb(0x3D5, (unsigned char)(position&0xFF));
+   // cursor HIGH port to vga INDEX register
+   outb(0x3D4, 0x0E);
+   outb(0x3D5, (unsigned char )((position>>8)&0xFF));
 }
 
 // Scrolls the text on the screen up by one line.
@@ -131,32 +33,39 @@ static void scroll() {
     // Get a space character with the default colour attributes.
     uint8_t attributeByte = (0 /*black*/ << 4) | (15 /*white*/ & 0x0F);
     uint16_t blank = 0x20 /* space */ | (attributeByte << 8);
-    uint8_t * fbuffer = FRAMEBUFFER_VIRTUAL;
 
-    // Row 25 is the end, this means we need to scroll up
-    if (cursor_y >= 30) {
+    if (cursor_y >= 25) {
         // Move the current text chunk that makes up the screen
         // back in the buffer by a line
         int i;
-        for (i = 0; i < 464 * video_pitch; i++)
-            fbuffer[i] = fbuffer[video_pitch * 16 + i];
+        for (i = 0; i < 80*24; i++)
+            video_memory[i] = video_memory[80 + i];
 
         // The last line should now be blank. Do this by writing
         // 80 spaces to it.
-        for (i = 464 * video_pitch; i < 480 * video_pitch; i++)
-            fbuffer[i] = 0;
+        for (i = 80*24;
+             i < 80*25; i++)
+            video_memory[i] = blank;
 
         // The cursor should now be on the last line.
-        cursor_y = 29;
+        cursor_y = 24;
     }
+    update_cursor(cursor_y, cursor_x);
 }
 
 // Writes a single character out to the screen.
 
+void monitor_write(char *c)
+{
+    asm volatile("mov $1, %%eax; \
+                  mov %0, %%ebx; \
+                  int $0xFF;" :: "r" (c) : "%eax", "%ebx");
+}
+
 void monitor_put(char c) {
-    // The background colour is black (0), the foreground is white (15).
+    // The background colour is black (0), the foreground is white (7).
     uint8_t backColour = 0;
-    uint8_t foreColour = 15;
+    uint8_t foreColour = 7;
 
     // The attribute byte is made up of two nibbles - the lower being the
     // foreground colour, and the upper the background colour.
@@ -185,10 +94,7 @@ void monitor_put(char c) {
     }
         // Handle any other printable character.
     else if (c >= ' ') {
-        //video_memory[cursor_y*80 + cursor_x] = c | attribute;
-        draw_char_mask((uint8_t*) (FRAMEBUFFER_VIRTUAL +
-                cursor_y * video_pitch * 16 + cursor_x * 8 * 3),
-                c, 255);
+        video_memory[cursor_x + 80*cursor_y] = (uint16_t) c | attribute;
         cursor_x++;
     }
 
@@ -201,37 +107,41 @@ void monitor_put(char c) {
 
     // Scroll the screen if needed.
     scroll();
-    // Move the hardware cursor.
-    //move_cursor();
+    update_cursor(cursor_y, cursor_x);
 }
 
 // Clears the screen, by copying lots of spaces to the framebuffer.
 
 void monitor_clear() {
-    uint8_t * framebuffer = FRAMEBUFFER_VIRTUAL;
 
-    int i,j;
-    for (i = 0; i < 480; i++) {
-        for(j = 0; j < 640; j++) {
-            /*framebuffer[j*3] = 255;
-            framebuffer[j*3 + 1] = 48;
-            framebuffer[j*3 + 2] = 64;*/
-            framebuffer[j*3] = 127;
-            framebuffer[j*3 + 1] = 127;
-            framebuffer[j*3 + 2] = 127;
-        }
-        framebuffer += video_pitch;
+    int i;
+    for (i = 0; i < 80*25; i++) {
+         video_memory[i] = 0;
     }
 
     // Move the hardware cursor back to the start.
     cursor_x = 0;
     cursor_y = 0;
-    //move_cursor();
+    update_cursor(cursor_y, cursor_x);
+}
+
+void monitor_init() {
+   unsigned short position = 0;
+   // cursor LOW port to vga INDEX register
+   outb(0x3D4, 0x0F);
+   position |= ((unsigned short ) inb(0x3D5) & 0xFF);
+   position = position << 8;
+   // cursor HIGH port to vga INDEX register
+   outb(0x3D4, 0x0E);
+   position |= ((unsigned short ) inb(0x3D5) & 0xFF);
+   cursor_y = (position / 80) + 1;
+   cursor_x = 0;
+   scroll();
 }
 
 // Outputs a null-terminated ASCII string to the monitor.
 
-void monitor_write(char *c) {
+void _monitor_write(char *c) {
     while (*c)
         monitor_put(*c++);
 }

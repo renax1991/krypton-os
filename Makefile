@@ -1,6 +1,6 @@
 CC=~/opt/cross/bin/i586-elf-gcc
 LDSCRIPT=linker.ld
-LDFLAGS=-g -ffreestanding -O2 -nostdlib
+LDFLAGS=-g -ffreestanding -nostdlib
 CCFLAGS=-g -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 KERNEL=kry_kern
 C_SRC=$(wildcard *.c)
@@ -21,7 +21,7 @@ $(KERNEL): $(OBJ)
 
 %.o: %.asm
 	@echo [ASM] $<
-	@nasm $(NASM_FLAGS) -o $@ $<
+	@nasm $(NASM_FLAGS) -g -o $@ $<
 	
 clean:
 	@rm -rf *.o

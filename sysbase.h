@@ -22,6 +22,7 @@
 struct sys_base_t {
     unsigned int sys_flags;
     thread_t * running_thread;
+    uint32_t k_reenter;
     unsigned int vm_online;
     unsigned int pm_last_page; // Address of the last never-freed page given
     unsigned long * mm_free_page_stack_ptr; // Free page stack address

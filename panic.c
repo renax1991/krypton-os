@@ -6,6 +6,7 @@
 #include "panic.h"
 #include "common.h"
 #include "elf.h"
+#include "kprintf.h"
 
 static void print_stack_trace ();
 
@@ -16,6 +17,7 @@ void panic (const char *msg)
   kprintf ("*** System panic: %s\n", msg);
   print_stack_trace ();
   kprintf ("***\n");
+  asm volatile("cli");
   for (;;) ;
 }
 

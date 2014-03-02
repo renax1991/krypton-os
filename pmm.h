@@ -9,8 +9,8 @@
 #define	_PMM_H
 
 #include "common.h"
-#include "idt.h"
 #include "multiboot.h"
+
 
 #define PAGE_PRESENT   0x1        // Page is mapped in.
 #define PAGE_WRITE     0x2        // Page is writable. Not set means read-only.
@@ -31,7 +31,7 @@ void mm_init(multiboot_t * mboot);
 
 unsigned int pm_alloc();
 
-void pm_free();
+void pm_free(unsigned int page);
 
 void * get_physaddr(void * virtualaddr);
 
@@ -39,13 +39,11 @@ void * mm_map(void * physaddr, void * virtualaddr, unsigned int flags);
 
 void mm_unmap(void * virtualaddr);
 
-volatile void *kmalloc(uint32_t l);
+void *kmalloc(uint32_t l);
 
-volatile void kfree (void *p);
+void kfree (void *p);
 
-inline volatile void page_fault (registers_t *regs);
-
-inline void switch_page_directory(void *pagetabledir_ptr);
+void switch_page_directory(void *pagetabledir_ptr);
 
 #endif	/* _PMM_H */
 
