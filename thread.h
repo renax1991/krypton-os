@@ -11,18 +11,26 @@
 #include "common.h"
 #include "pmm.h"
 
-// Possible thread states (TS)
-#define TS_RUN       1    // Thread is running
-#define TS_WAIT      2    // Thread is blocked, waiting
-#define TS_READY     4    // Thread is ready to run
-#define TB_SIGNAL    8    // Thread has been signaled
-#define TB_LAUNCH    16   // Thread is going to be launched
+/*! \brief Definition of the possible thread states (TS_*).
+ *
+ * These are the possible states of a given thread, stored
+ * in the thread_flags bitset of the thread descriptor.
+ */
+#define TS_RUN       1    //!< Thread is running
+#define TS_WAIT      2    //!< Thread is blocked, waiting
+#define TS_READY     4    //!< Thread is ready to run
+#define TB_SIGNAL    8    //!< Thread has been signaled
+#define TB_LAUNCH    16   //!< Thread is going to be launched
 
-/* Signal types definition (ST) */
-#define ST_MESG      1    // Thread received a message
-#define ST_EXCEPT    2    // Thread received an exception
 
-typedef struct msg_port_s msg_port_t;
+ /*! \brief Signal types definition (ST).
+ *
+ * Here are the available signals to be sent and received
+ * by threads to each other, with the wait() and signal() system calls.
+ */
+#define ST_MESG      1    //!< Thread received a message
+#define ST_EXCEPT    2    //!< Thread received an exception
+
 
 struct msg_port_s {
     list_node_t node;  // Node to link this port to others in a list
@@ -30,7 +38,7 @@ struct msg_port_s {
     uint8_t num_msg; // Number of messages posted
 };
 
-typedef struct {
+struct thread_s{
     list_node_t node;
     uint32_t user_esp;
     pagedir_t * page_directory;
@@ -43,9 +51,11 @@ typedef struct {
     uint32_t sig_wait;       // Signals being waited
     uint32_t sig_recvd;      // Signals received
     struct msg_port_s msg_port;
-} __attribute__((packed)) thread_t;
+    list_head_t msg_wait_proc;
+} __attribute__((packed));
 
-
+typedef struct msg_port_s msg_port_t;
+typedef struct thread_s thread_t;
 
 thread_t *init_threading ();
 thread_t *create_thread(int (*fn)(void*), void *args, int (*at_exit)(void*),

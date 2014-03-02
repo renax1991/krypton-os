@@ -7,14 +7,13 @@
 #include "thread.h"
 
 /* Maximum number of messages in a port */
-#define MAX_MESSAGES 16
-#define MAX_MSG_SZ 64
+#define MAX_MESSAGES 8
+#define MAX_MSG_SZ 128
 
 #define MF_UNREAD 1
 
 struct message_s {
 	list_node_t node;
-	uint8_t flags;
 	uint8_t msg_buf[MAX_MSG_SZ];
 };
 
