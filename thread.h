@@ -73,7 +73,7 @@ typedef struct thread_s thread_t;
 thread_t *init_threading ();
 
 thread_t *create_thread(int (*fn)(void*), void *args, int (*at_exit)(void*),
-        uint32_t *user_stack, uint32_t *kernel_stack, const char * name, int uid);
+        uint32_t *user_stack, uint32_t *kernel_stack, const char * name, int uid, int priority);
 
 void switch_thread (thread_t *next);
 
@@ -87,5 +87,6 @@ int _wait_for_flags(uint32_t flags);
 
 void wait(int);
 
+thread_t * find_thread(char * name);
 
 #endif	/* _THREAD_H */

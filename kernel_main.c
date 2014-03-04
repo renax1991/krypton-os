@@ -167,7 +167,7 @@ void init(multiboot_t * boot_info) {
     if(!(keyboard_thread = create_thread(demo_thread, NULL, NULL,
                         ((uint32_t *) kmalloc(4000)) + 1000,
                         ((uint32_t *) kmalloc(4000)) + 1000,
-                    "keyboard.device", 0)))
+                    "keyboard.device", 0, 15)))
         panic("can't create new thread");
     /*test->node.type = IRQ1;
     test->thread_ptr = keyboard_thread;
@@ -177,7 +177,8 @@ void init(multiboot_t * boot_info) {
     permit();
     kprintf("KRYPTON Operating System and Libraries\nRevision 1, built %s\n (C) The ERA Software Team\n\n", __DATE__);
     // This is the end of the road
-    wait(0);
+    for(;;);
+    // wait(0);
     kprintf("*** krypton.library woken up. Panicking...\n");
     asm volatile ("hlt");
 }
@@ -189,11 +190,11 @@ int demo_thread(void* niente)
     int * scancode;
 
     while(1) {
-        wait(ST_MESG);
-        msg = _msg_retrieve();
+        //wait(ST_MESG);
+        msg = msg_retrieve();
         scancode = (int*)&msg->msg_buf[0];
         kprintf("%c", kbdus[*scancode]);
-        _msg_cycle();
+        msg_cycle();
     }
 }
 
@@ -202,6 +203,10 @@ void protection_fault(registers_t *regs) {
     asm volatile ("mov %%cr2, %0" : "=r" (cr2));
 
     kprintf("OOPS: %s crashed at 0x%x!!\n", sys_base->running_thread->node.name, regs->eip);
+    kprintf("CS: 0x%4X EIP: 0x%8X EFLAGS: 0x%8X\n", regs->cs, regs->eip, regs->eflags);
+    kprintf("EAX: 0x%8X EBX: 0x%8X ECX: 0x%8X EDX: 0x%8X\n", regs->eax, regs->ebx, regs->ecx, regs->edx);
+    kprintf("ESI: 0x%8X EDI: 0x%8X EBP: 0x%8X ESP: 0x%8X\n", regs->esi, regs->edi, regs->ebp, regs->esp);
+    kprintf("DS: 0x%4X\n", regs->ds);
     panic("not syncing - unhandled protection fault");
 }
 
@@ -224,5 +229,7 @@ void syscall(registers_t *regs) {
     switch(regs->eax) {
         case 0x00: _wait_for_flags((uint32_t) regs->ebx); break;
         case 0x01: _monitor_write((char*) regs->ebx); break;
+        case 0x02: _msg_retrieve((message_t**) regs->ebx); break;
+        case 0x03: _msg_cycle(); break;
     }
 }

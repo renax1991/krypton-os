@@ -5,6 +5,7 @@
 #include "monitor.h"
 #include "pmm.h"
 #include "common.h"
+#include "sysbase.h"
 
 uint16_t *video_memory = (uint16_t*) 0xB8000;
 

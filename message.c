@@ -3,7 +3,7 @@
 #include "message.h"
 #include "sysbase.h"
 
-int _msg_post(thread_t * thread, uint8_t * src_msg_buf, uint16_t buf_sz) {
+void _msg_post(thread_t * thread, uint8_t * src_msg_buf, uint16_t buf_sz) {
 	message_t * msg;
 
 	// Check bounds
@@ -26,13 +26,34 @@ int _msg_post(thread_t * thread, uint8_t * src_msg_buf, uint16_t buf_sz) {
 	_signal(thread, ST_MESG);
 }
 
-message_t * _msg_retrieve() {
-	message_t * msg = (message_t *) get_head((list_head_t*)&sys_base->running_thread->msg_port.message_list);
+/* System call wrapper with struct-based return. */
+message_t * msg_retrieve()
+{
+	message_t * volatile return_message = NULL;
 
-	if(!msg)
-		return NULL;
+    do {
+    	asm volatile("mov $2, %%eax; \
+                  mov %0, %%ebx; \
+                  int $0xFF;" :: "r" (&return_message) : "%eax", "%ebx");
+    	if(!return_message)
+    		wait(ST_MESG);
+    	else
+    		break;
+    } while(1);
 
-	return msg;
+    return return_message;
+}
+
+/* System call wrapper with no argument. */
+void msg_cycle()
+{
+    asm volatile("mov $3, %%eax; \
+                  int $0xFF;" ::: "%eax");
+
+}
+
+void _msg_retrieve(message_t ** msg_ptr) {
+	*msg_ptr = (message_t *) get_head((list_head_t*)&sys_base->running_thread->msg_port.message_list);
 }
 
 void _msg_cycle()

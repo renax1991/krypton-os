@@ -20,10 +20,10 @@ struct message_s {
 typedef struct message_s message_t;
 
 /* Post a message (non-blocking) on a port */
-int _msg_post(thread_t *, uint8_t * src_msg_buf, uint16_t buf_sz);
+void _msg_post(thread_t *, uint8_t * src_msg_buf, uint16_t buf_sz);
 
 /* Retrieve a message form the thread's local port */
-message_t * _msg_retrieve();
+void _msg_retrieve(message_t ** );
 
 /* Delete a retrieved (or not) message */
 void _msg_cycle();

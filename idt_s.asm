@@ -196,7 +196,7 @@ dispatch:
     jnc no_switch            ; Don't switch if not set
     mov eax, [ebp+4]         ; Fetch the running_thread node
     mov ebx, [eax+28]        ; Get the thread flags
-    bt ebx, 1                ; Test if the thread was running
+    bt ebx, 0                ; Test if the thread was running
     jnc was_halt             ; If not, the CPU was halted before the interrupt
     mov [eax+40], esp        ; Save running_thread kernel-mode stack pointer
 was_halt:

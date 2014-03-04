@@ -8,14 +8,14 @@ extern void switch_context(thread_t *);
 
 
 thread_t *create_thread(int (*fn)(void*), void *args, int (*at_exit)(void*),
-        uint32_t *user_stack, uint32_t *kernel_stack, const char * name, int uid) {
+        uint32_t *user_stack, uint32_t *kernel_stack, const char * name, int uid, int priority) {
 
     thread_t * new_thread = (thread_t *) kmalloc(sizeof (thread_t));
     memset (new_thread, 0, sizeof (thread_t));
     // Fill in the new thread name
     new_thread->node.name = (char *) kmalloc(strlen(name) + 1);
     strcpy(new_thread->node.name, name);
-    new_thread->node.pri = 0; // Start with default priority
+    new_thread->node.pri = priority; // Start with default priority
     new_thread->node.type = NT_THREAD;
 
     *--user_stack = (uint32_t)at_exit;  // Fake return address.
@@ -152,7 +152,13 @@ void switch_threads() {
     //k_reenter--;
 }
 
+/* Function to find a thread by name*/
 thread_t * find_thread(char * name)  {
+    /* If the thread is running, return it.
+       This only makes sense if to avoid wreaking havoc in a int handler */
+    if(strcmp(sys_base->running_thread->node.name, name) == 0)
+        return sys_base->running_thread;
+
     forbid();
     thread_t * thread = (thread_t*) get_head((list_head_t *) &sys_base->thread_wait);
 
@@ -164,6 +170,18 @@ thread_t * find_thread(char * name)  {
         }
         thread = (thread_t*) get_next((list_node_t *) thread);
     }
+
+    thread = (thread_t*) get_head((list_head_t *) &sys_base->thread_ready);
+
+    while(thread){
+        if(strcmp(thread->node.name, name) == 0)
+        {
+            permit();
+            return thread;
+        }
+        thread = (thread_t*) get_next((list_node_t *) thread);
+    }
+
     permit();
     return NULL;
 }
