@@ -169,22 +169,6 @@ void irq_handler(registers_t *regs) {
     }
     // Send reset signal to master. (As well as slave, if necessary).
     outb(0x20, 0x20);
-    // Loop for user handlers hooking the interrupt
-    except_ptr = (except_t *) get_head((list_head_t *) &sys_base->intr_list);
-    while(except_ptr) {
-        if((except_ptr->node.type == regs->int_no))/* && 
-           (except_ptr->thread_ptr->thread_flags & TS_WAIT) != 0)*/ {
-            /*remove((list_node_t*) except_ptr->thread_ptr);
-            enqueue((list_head_t*) &sys_base->thread_ready,
-                    (list_node_t*) except_ptr->thread_ptr);
-            except_ptr->thread_ptr->thread_flags &= (~TS_WAIT);
-            except_ptr->thread_ptr->thread_flags |= TS_READY;
-            sys_base->sys_flags |= NEED_SCHEDULE;*/
-            _signal(except_ptr->thread_ptr, ST_EXCEPT);
-            break;
-        }
-        except_ptr = (except_t *) get_next((list_node_t *) except_ptr);
-    }
 
     // Check the "schedule needed" flag
     // If the flag is set, clear it and call the scheduler
