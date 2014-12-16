@@ -64,6 +64,8 @@ struct thread_s{
     uint32_t sig_recvd;          //!< Signals received by the thread.
     struct msg_port_s msg_port;  //!< Thread's message port.
     list_head_t msg_wait_proc;   //!< List of processes waiting to post a message, if the port is full.
+    (void*) (*on_switch)();      //!< Function called when the task loses the CPU.
+    (void*) (*on_resume)();      //!< Function called when the task regains the CPU.
 } __attribute__((packed));
 
 typedef struct msg_port_s msg_port_t;
