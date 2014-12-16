@@ -75,19 +75,19 @@ void schedule() {
 
     thread_t * top_thread;
 
-    /* If multitasking is disabled, kernel was reentered or an immediate task switch is needed,
+    /* If multitasking is disabled, kernel was reentered or an immediate task switch is requested,
        return immediately */
     if(sys_base->forbid_counter > 0)
         return;
 
     /* If the running thread (if one is running) has a pending signal,
        reschedule immediately so it may be redispatched with a new time slice*/
-    /*if((sys_base->running_thread->thread_flags & TB_SIGNAL) != 0){
+    if((sys_base->running_thread->thread_flags & TB_SIGNAL) != 0) {
         enqueue((list_head_t*) & sys_base->thread_ready,
                 (list_node_t*) sys_base->running_thread);
         sys_base->sys_flags |= NEED_TASK_SWITCH;
         return;
-    }*/
+    }
 
     /* Let's handle the normal case of thread preemption */
     /* Get a pointer to the highest priority ready-to-run thread */
@@ -95,10 +95,9 @@ void schedule() {
     /* If no more threads are ready, we must be the only running thread, so return */
     if(!top_thread)
         return;
-    /* If we get this far, we need to check if the topmost thread has higher
+    /* If we get this far, we need to check either if the topmost thread has higher
        priority than we do, or if the time slice ended. If so, preempt. */
     if ( (sys_base->running_thread != NULL) && 
-         /*(sys_base->running_thread->thread_flags & TS_READY) != 0) && */
          ( (sys_base->running_thread->node.pri < top_thread->node.pri) ||
          (sys_base->sys_flags & TIME_SLICE_EXPIRED) ) ) {
 
