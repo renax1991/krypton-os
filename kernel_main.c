@@ -96,15 +96,11 @@ char * kernel_thread_name = "krypton.library";
                 Things we will do:
                         - Initialize the interrupt system
                         - Initialize the virtual memory manager and reset the flat memory model.
-                        - Initialize the multitasking system
-                        _ Identify loaded modules and spawn a process for each one of them.
-                        - Enumerate PCI devices and load their drivers, if needed.
-                        - Paint the screen a lighter gray
-                        - Load the VFS manager and turn on interrupts.
-                At this time, the drivers' processes and the VFS manager
-                will be waiting to be run in the waiting task queue. When we turn on the interrupts the
-                timer interrupt will begin fireing and the multitasking system is online!
-                        - Terminate this task by issuing thread_exit().
+                        - Initialize the multitasking system (exec.library)
+                        - Identify loaded modules and spawn a task for each one of them
+                        - Initialize the basic devices needed by DOS to boot
+                        - Set up the VGA driver (vga.device) needed by DOS's console.device
+                        - Set up dos.library and turn on interrupts. DOS will take care of the system...
  */
 
 void init(multiboot_t * boot_info) {
